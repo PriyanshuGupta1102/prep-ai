@@ -331,6 +331,11 @@ const InterviewSession = ({ config, onFinish }: any) => {
   };
 
   useEffect(() => {
+    // Prevent multiple instances from being created
+    if (vapiRef.current) {
+      return;
+    }
+
     // 1. Check for Keys if using Real AI
     if (!USE_MOCK_AI && !process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY) {
       setError("Vapi API Key is missing. Please add it to your environment variables.");
@@ -405,7 +410,7 @@ const InterviewSession = ({ config, onFinish }: any) => {
         vapiRef.current.stop();
       }
     };
-  }, [config]);
+  }, [config, USE_MOCK_AI]);
 
   const handleStopSession = () => {
     if (vapiRef.current) {
@@ -477,7 +482,7 @@ const Scorecard = ({ results, onHome }: any) => {
 
       try {
         const genAI = new GenAIConstructor(process.env.NEXT_PUBLIC_GEMINI_API_KEY || "mock-key");
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const transcriptText = results.map((m: any) => `${m.role}: ${m.text}`).join("\n");
         const prompt = `Analyze interview:\n${transcriptText}\nOutput JSON: {overallScore, summary, strengths[], improvements[], techScores[{skill, score}]}`;
         
