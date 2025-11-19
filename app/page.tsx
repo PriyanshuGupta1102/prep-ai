@@ -484,7 +484,7 @@ const Scorecard = ({ results, onHome }: any) => {
         const genAI = new GenAIConstructor(process.env.NEXT_PUBLIC_GEMINI_API_KEY || "mock-key");
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
         const transcriptText = results.map((m: any) => `${m.role}: ${m.text}`).join("\n");
-        const prompt = `Analyze interview:\n${transcriptText}\nOutput JSON: {overallScore, summary, strengths[], improvements[], techScores[{skill, score}]}`;
+        const prompt = `Analyze interview:\n${transcriptText}\nOutput JSON: {overallScore (out of 10), summary, strengths[], improvements[], techScores[{skill, score (out of 10)}]}`;
         
         const result = await model.generateContent(prompt);
         const response = await result.response;
