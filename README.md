@@ -1,36 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PrepAI - AI-Powered Interview Coach
 
-## Getting Started
+PrepAI is an AI-powered interview preparation application that uses Vapi AI for voice interactions and Google's Gemini for interview analysis.
 
-First, run the development server:
+## Prerequisites
+
+- Node.js (v18 or higher)
+- npm or yarn package manager
+
+## Deployment Scripts
+
+This project includes two scripts to help with deployment:
+
+### build.sh
+Builds the application for production deployment.
+
+### run.sh
+Runs the built application in production mode.
+
+## Setup Instructions
+
+### For Deployment Services (like Render)
+
+1. Clone the repository to your deployment service
+2. Ensure your deployment service runs the `build.sh` script during the build process
+3. Set the following environment variables in your deployment service:
+   - `NEXT_PUBLIC_VAPI_PUBLIC_KEY` - Your Vapi public key
+   - `NEXT_PUBLIC_VAPI_ASSISTANT_ID` - Your Vapi assistant ID
+   - `NEXT_PUBLIC_GEMINI_API_KEY` - Your Google Gemini API key
+
+### Manual Setup
+
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd prep-ai
+   ```
+
+2. Make the scripts executable:
+   ```bash
+   chmod +x build.sh run.sh
+   ```
+
+3. Create a `.env.local` file with your API keys:
+   ```bash
+   NEXT_PUBLIC_VAPI_PUBLIC_KEY=your_vapi_public_key_here
+   NEXT_PUBLIC_VAPI_ASSISTANT_ID=your_vapi_assistant_id_here
+   NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_api_key_here
+   ```
+
+4. Run the build script:
+   ```bash
+   ./build.sh
+   ```
+
+5. To run the application locally in production mode:
+   ```bash
+   ./run.sh
+   ```
+
+## Environment Variables
+
+The application requires the following environment variables:
+
+- `NEXT_PUBLIC_VAPI_PUBLIC_KEY`: Your Vapi AI public key
+- `NEXT_PUBLIC_VAPI_ASSISTANT_ID`: Your Vapi AI assistant ID
+- `NEXT_PUBLIC_GEMINI_API_KEY`: Your Google Gemini API key
+
+## For Deployment Services like Render
+
+When deploying to services like Render:
+
+1. Set the build command to: `./build.sh`
+2. Set the start command to: `./run.sh`
+3. Add the required environment variables in the deployment settings
+
+## Development
+
+For development, you can run:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+This will start the development server on `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Technologies Used
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Next.js
+- React
+- TypeScript
+- Vapi AI
+- Google Gemini
+- Tailwind CSS
