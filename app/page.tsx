@@ -524,7 +524,23 @@ const Scorecard = ({ results, onHome }: any) => {
         }
         
         try {
-          setAnalysis(JSON.parse(jsonStr));
+          let parsedData = JSON.parse(jsonStr);
+          
+          // Normalize scores if they appear to be on a 0-100 scale instead of 0-10
+          if (parsedData.overallScore > 10) {
+            parsedData.overallScore = parseFloat((parsedData.overallScore / 10).toFixed(1));
+          }
+          
+          if (parsedData.techScores && Array.isArray(parsedData.techScores)) {
+            parsedData.techScores = parsedData.techScores.map((tech: any) => {
+              if (tech.score > 10) {
+                return { ...tech, score: Math.round(tech.score / 10) };
+              }
+              return tech;
+            });
+          }
+          
+          setAnalysis(parsedData);
         } catch (parseError) {
           console.error("Failed to parse JSON response:", parseError);
           console.log("Raw response:", jsonStr);
