@@ -242,17 +242,14 @@ const AuthScreen = ({ onLogin }: { onLogin: (user: any) => void }) => {
 };
 
 // 2. DASHBOARD
-const Dashboard = ({ user, onStartInterview, onSettings }: any) => {
+const Dashboard = ({ user, onStartInterview }: any) => {
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-8">
       <header className="flex justify-between items-center bg-slate-900/50 p-6 rounded-2xl border border-slate-800 backdrop-blur-sm">
         <div>
           <h1 className="text-2xl font-bold text-white">Welcome back</h1>
-          <p className="text-slate-400">Ready to ace your next interview?</p>
+          <p className="text-slate-40">Ready to ace your next interview?</p>
         </div>
-        <button onClick={onSettings} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-200 transition-colors">
-          <Settings className="w-5 h-5" />
-        </button>
       </header>
 
       <div className="grid md:grid-cols-3 gap-6">
@@ -320,7 +317,7 @@ const ConfigScreen = ({ onStart, onBack }: any) => {
 };
 
 // 4. INTERVIEW SESSION
-const InterviewSession = ({ config, onFinish, apiKeys }: any) => {
+const InterviewSession = ({ config, onFinish }: any) => {
   const [status, setStatus] = useState('initializing'); 
   const [messages, setMessages] = useState<any[]>([]);
   const messagesRef = useRef<any[]>([]); 
@@ -335,8 +332,8 @@ const InterviewSession = ({ config, onFinish, apiKeys }: any) => {
 
   useEffect(() => {
     // 1. Check for Keys if using Real AI
-    if (!USE_MOCK_AI && !apiKeys.vapi) {
-      setError("Vapi API Key is missing. Please add it in Settings.");
+    if (!USE_MOCK_AI && !process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY) {
+      setError("Vapi API Key is missing. Please add it to your environment variables.");
       return;
     }
 
@@ -344,16 +341,14 @@ const InterviewSession = ({ config, onFinish, apiKeys }: any) => {
     let VapiClass: any = MockVapi;
     if (!USE_MOCK_AI) {
       try {
-         if (typeof (window as any).Vapi !== 'undefined') {
-            VapiClass = (window as any).Vapi;
-         } else {
-            console.warn("Vapi SDK not loaded, falling back to Mock");
-         }
-      } catch (e) { console.log("Using Mock Vapi"); }
+         VapiClass = Vapi;
+      } catch (e) {
+         console.warn("Vapi SDK not loaded, falling back to Mock");
+      }
     }
 
     // 3. Initialize
-    const vapi = new VapiClass(apiKeys.vapi || "mock-key");
+    const vapi = new VapiClass(process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY || "mock-key");
     vapiRef.current = vapi;
 
     vapi.on('call-start', () => {
@@ -380,10 +375,10 @@ const InterviewSession = ({ config, onFinish, apiKeys }: any) => {
     vapi.on('call-end', () => {
       // GUARD: Don't show scorecard if call failed instantly (empty transcript)
       // We assume a valid interview has at least 2 exchanges or lasts > 5 seconds
-      if (messagesRef.current.length < 2 && !USE_MOCK_AI) {
+      if (messagesRef.current.length < 2 && !USE_MOCK_AI && status !== 'completed') {
         setError("Call ended too quickly. Did you provide a valid Assistant ID?");
         setStatus('error');
-      } else {
+      } else if (status !== 'completed') {
         setStatus('completed');
         onFinish(messagesRef.current);
       }
@@ -396,9 +391,9 @@ const InterviewSession = ({ config, onFinish, apiKeys }: any) => {
         variableValues: { name: "Candidate", role: config.role }
       };
       
-      // Use Assistant ID from settings or your dashboard
-      const assistantId = apiKeys.assistantId || "YOUR_ASSISTANT_ID"; 
-      vapi.start(assistantId, assistantOverrides); 
+      // Use Assistant ID from environment variable or default
+      const assistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID || "YOUR_ASSISTANT_ID";
+      vapi.start(assistantId, assistantOverrides);
 
     } catch (err) {
       console.error("Failed to start Vapi", err);
@@ -406,12 +401,17 @@ const InterviewSession = ({ config, onFinish, apiKeys }: any) => {
     }
 
     return () => {
-      if (vapiRef.current) vapiRef.current.stop();
+      if (vapiRef.current) {
+        vapiRef.current.stop();
+      }
     };
   }, [config]);
 
   const handleStopSession = () => {
-    if (vapiRef.current) vapiRef.current.stop();
+    if (vapiRef.current) {
+      vapiRef.current.stop();
+      setStatus('completed');
+    }
   };
 
   if (error) {
@@ -467,16 +467,16 @@ const InterviewSession = ({ config, onFinish, apiKeys }: any) => {
 };
 
 // 5. SCORECARD
-const Scorecard = ({ results, onHome, apiKeys }: any) => {
+const Scorecard = ({ results, onHome }: any) => {
   const [analysis, setAnalysis] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const generateFeedback = async () => {
-      const GenAIConstructor = USE_MOCK_AI ? MockGenerativeAI : ((window as any).GoogleGenerativeAI || MockGenerativeAI);
+      const GenAIConstructor = USE_MOCK_AI ? MockGenerativeAI : (GoogleGenerativeAI || MockGenerativeAI);
 
       try {
-        const genAI = new GenAIConstructor(apiKeys.gemini || "mock-key");
+        const genAI = new GenAIConstructor(process.env.NEXT_PUBLIC_GEMINI_API_KEY || "mock-key");
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const transcriptText = results.map((m: any) => `${m.role}: ${m.text}`).join("\n");
         const prompt = `Analyze interview:\n${transcriptText}\nOutput JSON: {overallScore, summary, strengths[], improvements[], techScores[{skill, score}]}`;
@@ -493,7 +493,7 @@ const Scorecard = ({ results, onHome, apiKeys }: any) => {
       }
     };
     generateFeedback();
-  }, [results, apiKeys]);
+  }, [results]);
 
   if (loading) return <div className="flex flex-col items-center justify-center h-full"><Loader2 className="w-12 h-12 text-blue-500 animate-spin" /><p className="text-white mt-4">Analyzing...</p></div>;
 
@@ -543,37 +543,19 @@ const Scorecard = ({ results, onHome, apiKeys }: any) => {
 
 // MAIN APP CONTAINER
 export default function App() {
-  const [view, setView] = useState('login'); 
+  const [view, setView] = useState('login');
   const [user, setUser] = useState<any>(null);
   const [interviewConfig, setInterviewConfig] = useState<any>(null);
   const [interviewResults, setInterviewResults] = useState<any>(null);
-  const [showSettings, setShowSettings] = useState(false);
-  const [apiKeys, setApiKeys] = useState({ vapi: '', assistantId: '', gemini: '' });
 
   return (
     <div className="bg-slate-950 min-h-screen text-slate-200 font-sans selection:bg-blue-500/30">
-      {showSettings && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 w-full max-w-md">
-            <h2 className="text-xl font-bold text-white mb-4">API Configuration</h2>
-            <div className="space-y-4">
-              <div className="p-3 bg-amber-900/30 border border-amber-600/30 rounded text-amber-200 text-xs mb-4">
-                <strong>Note:</strong> Set USE_MOCK_AI = false in code to use these keys.
-              </div>
-              <input type="text" value={apiKeys.vapi} onChange={e => setApiKeys({...apiKeys, vapi: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white" placeholder="Vapi Public Key" />
-              <input type="text" value={apiKeys.assistantId} onChange={e => setApiKeys({...apiKeys, assistantId: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white" placeholder="Vapi Assistant ID" />
-              <input type="password" value={apiKeys.gemini} onChange={e => setApiKeys({...apiKeys, gemini: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white" placeholder="Gemini API Key" />
-              <button onClick={() => setShowSettings(false)} className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg font-bold">Save & Close</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {view === 'login' && <AuthScreen onLogin={(u) => { setUser(u); setView('dashboard'); }} />}
-      {view === 'dashboard' && <Dashboard user={user} onStartInterview={() => setView('setup')} onSettings={() => setShowSettings(true)} />}
+      {view === 'dashboard' && <Dashboard user={user} onStartInterview={() => setView('setup')} />}
       {view === 'setup' && <ConfigScreen onStart={(c: any) => { setInterviewConfig(c); setView('interview'); }} onBack={() => setView('dashboard')} />}
-      {view === 'interview' && <InterviewSession config={interviewConfig} onFinish={(r: any) => { setInterviewResults(r); setView('scorecard'); }} apiKeys={apiKeys} />}
-      {view === 'scorecard' && <Scorecard results={interviewResults} onHome={() => setView('dashboard')} apiKeys={apiKeys} />}
+      {view === 'interview' && <InterviewSession config={interviewConfig} onFinish={(r: any) => { setInterviewResults(r); setView('scorecard'); }} />}
+      {view === 'scorecard' && <Scorecard results={interviewResults} onHome={() => setView('dashboard')} />}
     </div>
   );
 }
