@@ -487,8 +487,50 @@ const Scorecard = ({ results, onHome }: any) => {
         const prompt = `Analyze interview:\n${transcriptText}\nOutput JSON: {overallScore, summary, strengths[], improvements[], techScores[{skill, score}]}`;
         
         const result = await model.generateContent(prompt);
-        let jsonStr = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
-        setAnalysis(JSON.parse(jsonStr));
+        const response = await result.response;
+        let responseText = response.text();
+        
+        // Handle potential JSON formatting issues
+        let jsonStr = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+        
+        // If the response starts with code block markers, try to extract JSON
+        if (jsonStr.includes('{') && jsonStr.includes('}')) {
+          // Find the first JSON object in the response
+          const jsonObjMatch = jsonStr.match(/\{[\s\S]*\}/);
+          if (jsonObjMatch) {
+            jsonStr = jsonObjMatch[0];
+          }
+        }
+        
+        // If still no valid JSON found, use fallback
+        if (!jsonStr.startsWith('{') || !jsonStr.endsWith('}')) {
+          console.error("Could not extract valid JSON from response:", responseText);
+          throw new Error("Invalid JSON response from Gemini API");
+        }
+        
+        // Attempt to extract JSON from response if it's wrapped in text
+        if (jsonStr.startsWith('```')) {
+          // Try to find JSON within code blocks
+          const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+          if (jsonMatch) {
+            jsonStr = jsonMatch[1].trim();
+          }
+        }
+        
+        // Try to find JSON object in the response
+        const jsonObjMatch = jsonStr.match(/\{[\s\S]*\}/);
+        if (jsonObjMatch) {
+          jsonStr = jsonObjMatch[0];
+        }
+        
+        try {
+          setAnalysis(JSON.parse(jsonStr));
+        } catch (parseError) {
+          console.error("Failed to parse JSON response:", parseError);
+          console.log("Raw response:", jsonStr);
+          // Fallback to a default analysis structure
+          setAnalysis({ overallScore: 0, summary: "Error processing feedback.", strengths: [], improvements: [], techScores: [] });
+        }
       } catch (error) {
         console.error(error);
         // Fallback
