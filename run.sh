@@ -22,12 +22,12 @@ fi
 echo "Node.js version: $(node --version)"
 echo "npm version: $(npm --version)"
 
-# Check if the build exists
-if [ ! -d "out" ]; then
-    echo "Build directory not found. Please run build.sh first."
+# Check if package.json has a start script and if the build output exists
+if [ ! -f "package.json" ] || ! grep -q "start" package.json; then
+    echo "Error: package.json not found or no start script defined."
     exit 1
 fi
 
 # Start the application in production mode
 echo "Starting application in production mode..."
-npm start
+npx next start
